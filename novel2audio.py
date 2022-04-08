@@ -36,11 +36,20 @@ def login_sf(sf_username, sf_password):
         return response.json()['token']
 
 
+def download_novel(novel_url, novel_name):
+    response = requests.get(novel_url)
+    with open('/data/'+novel_name+'.txt', 'wb') as f:
+        f.write(response.content)
+    with open('/data/'+novel_name+'.txt', 'r', encoding='utf-8') as f:
+        return f.read()
+
+
 if __name__ == '__main__':
-    opts, _ = getopt.getopt(sys.argv[1:], 'u:p:t:k:', [""])
+    opts, _ = getopt.getopt(sys.argv[1:], 'u:p:t:n:k:', [""])
     user = ''
     password = ''
-    txt = ''
+    txt_url = ''
+    txt_name = ''
     clientToken = ''
     for opt, value in opts:
         if opt in ['-u']:
@@ -48,17 +57,21 @@ if __name__ == '__main__':
         elif opt in ['-p']:
             password = value
         elif opt in ['-t']:
-            txt = value
+            txt_url = value
+        elif opt in ['-n']:
+            txt_name = value
         elif opt in ['-k']:
             clientToken = value
 
     if user == '' or password == '':
         print('参数有误！')
         exit(1)
+
+    txt_content = download_novel(txt_url, txt_name)
     speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
-    ws = WSClient(speech_url, txt, 'test.mp3')
+    ws = WSClient(speech_url, txt_content, txt_name + '.mp3')
     ws.connect()
     ws.run_forever()
-    
-    
-    
+
+
+
