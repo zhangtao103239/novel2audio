@@ -38,9 +38,9 @@ def login_sf(sf_username, sf_password):
 
 def download_novel(novel_url, novel_name):
     response = requests.get(novel_url)
-    with open('/data/'+novel_name+'.txt', 'wb') as f:
+    with open(novel_name+'.txt', 'wb') as f:
         f.write(response.content)
-    with open('/data/'+novel_name+'.txt', 'r', encoding='utf-8') as f:
+    with open(novel_name+'.txt', 'r', encoding='utf-8') as f:
         return f.read()
 
 
