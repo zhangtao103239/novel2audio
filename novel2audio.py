@@ -2,6 +2,7 @@ import getopt
 import sys
 import requests
 from ws4py.client.threadedclient import WebSocketClient
+import re
 
 
 class WSClient(WebSocketClient):
@@ -38,10 +39,36 @@ def login_sf(sf_host_url, sf_username, sf_password):
 
 def download_novel(novel_url, novel_name):
     response = requests.get(novel_url)
-    with open(novel_name+'.txt', 'wb') as f:
+    with open(novel_name + '.txt', 'wb') as f:
         f.write(response.content)
-    with open(novel_name+'.txt', 'r', encoding='utf-8') as f:
+    with open(novel_name + '.txt', 'r', encoding='utf-8') as f:
         return f.read()
+
+
+def spilt_chapter(novel_content):
+    chapter_pattern = re.compile(r'(?<=[　\s])(?:序章|序言|卷首语|扉页|楔子|正文(?![完结])'
+                                 r'|终章|后记|尾声|番外|第?\s{0,4}[\d〇零一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]'
+                                 r'+?\s{0,4}(?:章|节(?!课)|卷|集(?![合和])|部(?![分赛游])|篇(?!张))).{0,30}$', flags=re.MULTILINE)
+    result = chapter_pattern.finditer(novel_content)
+    if result is None:
+        yield '', novel_content
+    else:
+        chapter_title = None
+        begin = 0
+        for m in result:
+            if chapter_title is None:
+                chapter_title = m.group()
+                begin = m.end()
+            else:
+                end = m.start()
+                chapter_content = chapter_title + novel_content[begin: end]
+                old_title = chapter_title
+                chapter_title = m.group()
+                begin = m.end()
+                yield old_title, chapter_content
+        if chapter_title is None:
+            chapter_title = ''
+        yield chapter_title, chapter_title + novel_content[begin:]
 
 
 if __name__ == '__main__':
@@ -69,12 +96,12 @@ if __name__ == '__main__':
     if user == '' or password == '':
         print('参数有误！')
         exit(1)
-    login_sf(sf_host_url=host_url, sf_username=user, sf_password=password)
+    # login_sf(sf_host_url=host_url, sf_username=user, sf_password=password)
     txt_content = download_novel(txt_url, txt_name)
-    speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
-    ws = WSClient(speech_url, txt_content, txt_name + '.mp3')
-    ws.connect()
-    ws.run_forever()
-
-
-
+    index = 0
+    for chapter_name, chapter in spilt_chapter(txt_content):
+        index += 1
+        speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
+        ws = WSClient(speech_url, chapter, chapter_name + '.mp3')
+        ws.connect()
+        ws.run_forever()
