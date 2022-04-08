@@ -35,7 +35,7 @@ jobs:
       - name: run-script
         run: |
           pip install -r requirements.txt
-          python novel2audio.py -u${{secrets.sf_username}} -p${{secrets.sf_password}} -k${{secrets.MS_CLIENT_TOKEN}} -t'${{github.event.issue.body}}'
+          python novel2audio.py -u${{secrets.sf_username}} -p${{secrets.sf_password}} -k${{secrets.MS_CLIENT_TOKEN}} -t${{github.event.issue.body}} -n${{github.event.issue.title}}
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v3.0.0
         with:
