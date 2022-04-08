@@ -7,6 +7,8 @@ on:
   # Triggers the workflow on push or pull request events but only for the main branch
   issues:
     types: [opened, edited, milestoned,labeled,unlabeled]
+  issue_comment: 
+    types: [created, edited]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
