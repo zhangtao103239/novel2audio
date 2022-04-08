@@ -27,13 +27,13 @@ jobs:
           # Version range or exact version of a Python version to use, using SemVer's version range syntax.
           python-version: 3.x # optional, default is 3.x
           # Used to specify a package manager for caching in the default directory. Supported values: pip, pipenv, poetry.
-          # cache: pip # optional
+          cache: pip # optional
           # The target architecture (x86, x64) of the Python interpreter.
           architecture: x64 # optional
           # Used to pull python distributions from actions/python-versions. Since there's a default, this is typically not supplied by the user.
           token: ${{ github.token }} # optional, default is ${{ github.token }}
       - name: run-script
         run: |
-          ls -al
+          pip install -r requirements.txt
           python novel2audio.py -u${{secrets.sf_username}} -p${{secrets.sf_password}}
           
