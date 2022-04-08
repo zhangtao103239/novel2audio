@@ -6,31 +6,31 @@ name: Get Issue Content
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   issues:
-    types: [opened, edited, milestoned]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+    types: [opened, edited, milestoned,labeled,unlabeled]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build:
+  runs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Dump GitHub context
-        id: github_context_step
-        run: echo '${{ toJSON(github) }}'
-      - name: Dump job context
-        run: echo '${{ toJSON(job) }}'
-      - name: Dump steps context
-        run: echo '${{ toJSON(steps) }}'
-      - name: Dump runner context
-        run: echo '${{ toJSON(runner) }}'
-      - name: Dump strategy context
-        run: echo '${{ toJSON(strategy) }}'
-      - name: Dump matrix context
-        run: echo '${{ toJSON(matrix) }}'
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v3.1.1
+        with:
+          # Version range or exact version of a Python version to use, using SemVer's version range syntax.
+          python-version: 3.x # optional, default is 3.x
+          # Used to specify a package manager for caching in the default directory. Supported values: pip, pipenv, poetry.
+          cache: pip # optional
+          # The target architecture (x86, x64) of the Python interpreter.
+          architecture: x64 # optional
+          # Used to pull python distributions from actions/python-versions. Since there's a default, this is typically not supplied by the user.
+          token: ${{ github.token }} # optional, default is ${{ github.token }}
+      - name: run-script
+        run: |
+          ls -al
+          
