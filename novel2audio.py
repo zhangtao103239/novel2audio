@@ -23,5 +23,5 @@ if __name__ == '__main__':
     }
     response = requests.request("POST", url, data=data)
 
-    print(response.text)
+    # print(response.text)
     
