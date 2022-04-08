@@ -6,14 +6,13 @@ name: Get Issue Content
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   issues:
-    types: [opened, edited, milestoned,labeled,unlabeled]
-  issue_comment: 
-    types: [created, edited]
+    types: [opened, edited, labeled]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  runs:
+  transferToMusic:
+    if: github.event.issue.user.login == 'zhangtao103239'
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
