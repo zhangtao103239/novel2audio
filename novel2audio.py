@@ -25,8 +25,8 @@ class WSClient(WebSocketClient):
             self.fp.write(song_bytes)
 
 
-def login_sf(sf_username, sf_password):
-    sf_url = "https://seafile.ynotme.cn/api2/auth-token/"
+def login_sf(sf_host_url, sf_username, sf_password):
+    sf_url = sf_host_url + "/api2/auth-token/"
     data = {
         'username': sf_username,
         'password': sf_password
@@ -45,9 +45,10 @@ def download_novel(novel_url, novel_name):
 
 
 if __name__ == '__main__':
-    opts, _ = getopt.getopt(sys.argv[1:], 'u:p:t:n:k:', [""])
+    opts, _ = getopt.getopt(sys.argv[1:], 'u:p:t:n:k:h:', [""])
     user = ''
     password = ''
+    host_url = ''
     txt_url = ''
     txt_name = ''
     clientToken = ''
@@ -62,11 +63,13 @@ if __name__ == '__main__':
             txt_name = value
         elif opt in ['-k']:
             clientToken = value
+        elif opt in ['-h']:
+            host_url = value
 
     if user == '' or password == '':
         print('参数有误！')
         exit(1)
-
+    login_sf(sf_host_url=host_url, sf_username=user, sf_password=password)
     txt_content = download_novel(txt_url, txt_name)
     speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
     ws = WSClient(speech_url, txt_content, txt_name + '.mp3')
