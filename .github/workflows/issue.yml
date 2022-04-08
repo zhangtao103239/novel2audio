@@ -1,12 +1,12 @@
 # This is a basic workflow to help you get started with Actions
 
-name: Get Issue Content
+name: 小说转换音频
 
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   issues:
-    types: [opened, edited, labeled]
+    types: [opened, edited]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
