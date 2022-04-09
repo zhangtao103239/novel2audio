@@ -3,6 +3,7 @@ import sys
 import requests
 from ws4py.client.threadedclient import WebSocketClient
 import re
+import threading
 
 
 class WSClient(WebSocketClient):
@@ -71,6 +72,12 @@ def spilt_chapter(novel_content):
         yield chapter_title, chapter_title + novel_content[begin:]
 
 
+def transfrom2Audio(speech_url, chapter_name, chapter_content, index):
+    ws = WSClient(speech_url, chapter_content, index + "_" + chapter_name + '.mp3')
+    ws.connect()
+    ws.run_forever()
+
+
 if __name__ == '__main__':
     opts, _ = getopt.getopt(sys.argv[1:], 'u:p:t:n:k:h:', [""])
     user = ''
@@ -96,12 +103,25 @@ if __name__ == '__main__':
     if user == '' or password == '':
         print('参数有误！')
         exit(1)
+    t1 = None
+    t2 = None
+    t3 = None
+
     # login_sf(sf_host_url=host_url, sf_username=user, sf_password=password)
     txt_content = download_novel(txt_url, txt_name)
     index = 0
+    speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
     for chapter_name, chapter in spilt_chapter(txt_content):
         index += 1
-        speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
-        ws = WSClient(speech_url, chapter, chapter_name + '.mp3')
-        ws.connect()
-        ws.run_forever()
+        if index % 3 == 1:
+            t1 = threading.Thread(target=transfrom2Audio, args=(speech_url, chapter_name, chapter, "{:0>3}".format(index)))
+            t1.start()
+        elif index % 3 == 2:
+            t2 = threading.Thread(target=transfrom2Audio, args=(speech_url, chapter_name, chapter, "{:0>3}".format(index)))
+            t2.start()
+        elif index % 3 == 0:
+            t3 = threading.Thread(target=transfrom2Audio, args=(speech_url, chapter_name, chapter, "{:0>3}".format(index)))
+            t3.start()
+            t1.join()
+            t2.join()
+            t3.join()
