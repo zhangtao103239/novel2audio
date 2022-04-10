@@ -4,6 +4,8 @@ import requests
 from ws4py.client.threadedclient import WebSocketClient
 import re
 import threading
+from multiprocessing import cpu_count
+
 
 
 class WSClient(WebSocketClient):
@@ -103,9 +105,9 @@ if __name__ == '__main__':
     if user == '' or password == '':
         print('参数有误！')
         exit(1)
-    t1 = None
-    t2 = None
-    t3 = None
+    cpus = cpu_count()
+    print('CPU count is %d' % cpus)
+    threads = []
 
     # login_sf(sf_host_url=host_url, sf_username=user, sf_password=password)
     txt_content = download_novel(txt_url, txt_name)
@@ -113,15 +115,10 @@ if __name__ == '__main__':
     speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
     for chapter_name, chapter in spilt_chapter(txt_content):
         index += 1
-        if index % 3 == 1:
-            t1 = threading.Thread(target=transfrom2Audio, args=(speech_url, chapter_name, chapter, "{:0>3}".format(index)))
-            t1.start()
-        elif index % 3 == 2:
-            t2 = threading.Thread(target=transfrom2Audio, args=(speech_url, chapter_name, chapter, "{:0>3}".format(index)))
-            t2.start()
-        elif index % 3 == 0:
-            t3 = threading.Thread(target=transfrom2Audio, args=(speech_url, chapter_name, chapter, "{:0>3}".format(index)))
-            t3.start()
-            t1.join()
-            t2.join()
-            t3.join()
+        print('开始处理第%d章' % index)
+        t1 = threading.Thread(target=transfrom2Audio, args=(speech_url, chapter_name, chapter, "{:0>3}".format(index)))
+        t1.start()
+        threads.append(t1)
+        if index % cpus == 0:
+            for t in threads:
+                t.join()
