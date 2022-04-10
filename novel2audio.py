@@ -107,8 +107,6 @@ if __name__ == '__main__':
         exit(1)
     cpus = cpu_count()
     print('CPU count is %d' % cpus)
-    if cpus < 6:
-        cpus = 6
     threads = []
 
     # login_sf(sf_host_url=host_url, sf_username=user, sf_password=password)
