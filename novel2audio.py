@@ -38,6 +38,7 @@ def login_sf(sf_host_url, sf_username, sf_password):
     }
     response = requests.request("POST", sf_url, data=data)
     if response.ok:
+        print('登录SF成功')
         return response.json()['token']
 
 
@@ -68,6 +69,7 @@ def download_novel(novel_url, novel_name):
     response = requests.get(novel_url)
     with open(novel_name + '.txt', 'wb') as f:
         f.write(response.content)
+    print('下载文本成功')
     with open(novel_name + '.txt', 'r', encoding='utf-8') as f:
         return f.read()
 
@@ -141,7 +143,6 @@ if __name__ == '__main__':
     cpus = cpu_count()
     print('CPU count is %d' % cpus)
     threads = []
-
     token = login_sf(sf_host_url=host_url,
                      sf_username=user, sf_password=password)
     if token is None:
