@@ -23,7 +23,7 @@ def search_book(book_host_url, bookname):
             print('未找到完全同名的书籍，请确认')
             return None
         print('已找到对应书籍，正在获取目录')
-        return book_host_url, book_url
+        return book_url
 
 
 def get_chapters(book_host_url, book_url):
