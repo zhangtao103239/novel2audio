@@ -8,6 +8,8 @@ import threading
 from multiprocessing import cpu_count
 import json
 
+from search_book import get_chapters, search_book
+
 
 class WSClient(WebSocketClient):
     def __init__(self, url, text, filename):
@@ -62,7 +64,7 @@ def upload_to_sf(token, host_url, repo_id, path, novel_name, filename):
             params={'ret-json': 1}, headers=headers)
         if response.ok:
             print(json.dumps(response.json(), ensure_ascii=False, indent=2))
-            
+
 
 def download_novel(novel_url, novel_name):
     response = requests.get(novel_url)
@@ -109,7 +111,7 @@ def transfrom2Audio(speech_url, chapter_name, chapter_content, index, sf_config)
 
 
 if __name__ == '__main__':
-    opts, _ = getopt.getopt(sys.argv[1:], 'u:p:t:n:k:h:r:d:', [""])
+    opts, _ = getopt.getopt(sys.argv[1:], 'u:p:t:n:k:h:r:d:m:', [""])
     user = ''
     password = ''
     host_url = ''
@@ -118,6 +120,7 @@ if __name__ == '__main__':
     txt_url = ''
     txt_name = ''
     clientToken = ''
+    txt_host_url = ''
     for opt, value in opts:
         if opt in ['-u']:
             user = value
@@ -135,6 +138,8 @@ if __name__ == '__main__':
             upload_dir = value
         elif opt in ['-r']:
             repo_id = value
+        elif opt in ['-m']:
+            txt_host_url = value
 
     if user == '' or password == '':
         print('参数有误！')
@@ -147,10 +152,18 @@ if __name__ == '__main__':
     if token is None:
         print('登录SF失败！')
         exit(1)
-    txt_content = download_novel(txt_url, txt_name)
-    index = 0
-    speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
-    for chapter_name, chapter in spilt_chapter(txt_content):
+    if txt_url.startswith('http'):
+        txt_content = download_novel(txt_url, txt_name)
+        index = 0
+        speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
+        chapters = spilt_chapter(txt_content)
+    else:
+        book_url = search_book(txt_host_url, txt_name)
+        if book_url is not None:
+            chapters = get_chapters(txt_host_url, book_url)
+        else:
+            exit(1)
+    for chapter_name, chapter in chapters:
         sf_config = {
             "token": token,
             "host_url": host_url,
