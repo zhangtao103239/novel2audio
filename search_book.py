@@ -38,9 +38,3 @@ def get_chapters(book_host_url, book_url):
             html = etree.HTML(chapter_resp.text)
             chapter_content = '\n'.join(html.xpath('//*[@id="article"]//text()'))
             yield chapter_name, chapter_content
-
-
-if __name__ == '__main__':
-    chapters = get_chapters('https://www.taoyuannongyekeji.com', '/post/28576.html')
-    for chapter_name, chapter_content in chapters:
-        print(chapter_name)
