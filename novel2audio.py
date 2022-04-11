@@ -62,8 +62,7 @@ def upload_to_sf(token, host_url, repo_id, path, novel_name, filename):
             params={'ret-json': 1}, headers=headers)
         if response.ok:
             print(json.dumps(response.json(), ensure_ascii=False, indent=2))
-    pass
-
+            
 
 def download_novel(novel_url, novel_name):
     response = requests.get(novel_url)
