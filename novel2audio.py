@@ -1,11 +1,12 @@
 import getopt
+from importlib.metadata import files
 import sys
 import requests
 from ws4py.client.threadedclient import WebSocketClient
 import re
 import threading
 from multiprocessing import cpu_count
-
+import json
 
 
 class WSClient(WebSocketClient):
@@ -38,6 +39,29 @@ def login_sf(sf_host_url, sf_username, sf_password):
     response = requests.request("POST", sf_url, data=data)
     if response.ok:
         return response.json()['token']
+
+
+def upload_to_sf(token, host_url, repo_id, path, novel_name, filename):
+    headers = {
+        'Authorization': 'Token ' + token
+    }
+    url = host_url + '/api2/repos/' + repo_id + '/upload-link/'
+    r = requests.get(url, headers=headers, params={'p': path})
+    if r.ok:
+        upload_url = r.text.replace('"', '')
+        f = {'file': open(filename, 'rb')}
+        data = {
+            "parent_dir": path,
+            "relative_path": novel_name,
+            "replace": 1
+        }
+
+        response = requests.post(
+            upload_url, data=data, files=f,
+            params={'ret-json': 1}, headers=headers)
+        if response.ok:
+            print(json.dumps(response.json(), ensure_ascii=False, indent=2))
+    pass
 
 
 def download_novel(novel_url, novel_name):
@@ -74,17 +98,22 @@ def spilt_chapter(novel_content):
         yield chapter_title, chapter_title + novel_content[begin:]
 
 
-def transfrom2Audio(speech_url, chapter_name, chapter_content, index):
-    ws = WSClient(speech_url, chapter_content, index + "_" + chapter_name + '.mp3')
+def transfrom2Audio(speech_url, chapter_name, chapter_content, index, sf_config):
+    filename = index + "_" + chapter_name + '.mp3'
+    ws = WSClient(speech_url, chapter_content, filename)
     ws.connect()
     ws.run_forever()
+    upload_to_sf(sf_config['token'], sf_config['host_url'], sf_config['repo_id'],
+                 sf_config['path'], sf_config['novel_name'], filename)
 
 
 if __name__ == '__main__':
-    opts, _ = getopt.getopt(sys.argv[1:], 'u:p:t:n:k:h:', [""])
+    opts, _ = getopt.getopt(sys.argv[1:], 'u:p:t:n:k:h:r:d:', [""])
     user = ''
     password = ''
     host_url = ''
+    repo_id = ''
+    upload_dir = ''
     txt_url = ''
     txt_name = ''
     clientToken = ''
@@ -101,6 +130,10 @@ if __name__ == '__main__':
             clientToken = value
         elif opt in ['-h']:
             host_url = value
+        elif opt in ['-d']:
+            upload_dir = value
+        elif opt in ['-r']:
+            repo_id = value
 
     if user == '' or password == '':
         print('参数有误！')
@@ -109,14 +142,26 @@ if __name__ == '__main__':
     print('CPU count is %d' % cpus)
     threads = []
 
-    # login_sf(sf_host_url=host_url, sf_username=user, sf_password=password)
+    token = login_sf(sf_host_url=host_url,
+                     sf_username=user, sf_password=password)
+    if token is None:
+        print('登录SF失败！')
+        exit(1)
     txt_content = download_novel(txt_url, txt_name)
     index = 0
     speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
     for chapter_name, chapter in spilt_chapter(txt_content):
+        sf_config = {
+            "token": token,
+            "host_url": host_url,
+            "repo_id": repo_id,
+            "path": upload_dir,
+            "novel_name": txt_name
+        }
         index += 1
         print('开始处理第%d章' % index)
-        t1 = threading.Thread(target=transfrom2Audio, args=(speech_url, chapter_name, chapter, "{:0>3}".format(index)))
+        t1 = threading.Thread(target=transfrom2Audio, args=(
+            speech_url, chapter_name, chapter, "{:0>3}".format(index), sf_config))
         t1.start()
         threads.append(t1)
         if index % cpus == 0:
