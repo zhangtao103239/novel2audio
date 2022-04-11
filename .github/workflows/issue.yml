@@ -34,14 +34,17 @@ jobs:
       - name: run-script
         run: |
           pip install -r requirements.txt
-          python novel2audio.py -h${{secrets.SF_HOSTURL}} -u${{secrets.sf_username}} -p${{secrets.sf_password}} -k${{secrets.MS_CLIENT_TOKEN}} -t${{github.event.issue.body}} -n${{github.event.issue.title}} 
+          'python novel2audio.py -h${{secrets.SF_HOSTURL}} \
+            -u${{secrets.SF_USERNAME}} -p${{secrets.SF_PASSWORD}} \
+            -k${{secrets.MS_CLIENT_TOKEN}} -t${{github.event.issue.body}} \
+            -n${{github.event.issue.title}} -r${{secrets.SF_REPO_ID}} -d${{secrets.SF_UPLOAD_DIR}}'
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v3.0.0
         with:
           # Artifact name
           name: audio # optional, default is artifact
           # A file, directory or wildcard pattern that describes what to upload
-          path: '*.mp3'
+          path: "*.mp3"
           # The desired behavior if no files are found using the provided path.
           retention-days: 1 # optional
-          
+
