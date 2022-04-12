@@ -174,7 +174,7 @@ if __name__ == '__main__':
         index += 1
         print('开始处理第%d章' % index)
         t1 = threading.Thread(target=transfrom2Audio, args=(
-            speech_url, chapter_name, chapter, "{:0>3}".format(index), sf_config))
+            speech_url, chapter_name, chapter, "{:0>4}".format(index), sf_config))
         t1.start()
         threads.append(t1)
         if index % cpus == 0:
