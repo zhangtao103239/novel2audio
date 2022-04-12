@@ -183,7 +183,6 @@ if __name__ == '__main__':
         print('参数有误！')
         exit(1)
     cpus = cpu_count()
-    cpus = 1
     print('CPU count is %d' % cpus)
     threads = []
     token = login_sf(sf_host_url=host_url,
