@@ -1,5 +1,6 @@
 import getopt
 from importlib.metadata import files
+from lib2to3.pgen2.token import RBRACE
 import sys
 import requests
 from ws4py.client.threadedclient import WebSocketClient
@@ -15,13 +16,50 @@ class WSClient(WebSocketClient):
     def __init__(self, url, text, filename):
         self.fp = open(filename, 'wb')
         self.text = text
+        self.narrator = '<prosody rate="0%" pitch="0%">{text}</prosody>'
+        self.voices = ['<prosody rate="0%" pitch="-7%">{text}</prosody>',
+                       '<prosody rate="0%" pitch="7%">{text}</prosody>',
+                       '<prosody rate="0%" pitch="14%">{text}</prosody>']
         super(WSClient, self).__init__(url)
 
     def opened(self):
         self.send(
             'Content-Type:application/json; charset=utf-8\r\n\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-160kbitrate-mono-mp3"}}}}\r\n')
-        self.send(
-            "X-RequestId:fe83fbefb15c7739fe674d9f3e81d38f\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n<speak xmlns=\"http://www.w3.org/2001/10/synthesis\" xmlns:mstts=\"http://www.w3.org/2001/mstts\" xmlns:emo=\"http://www.w3.org/2009/10/emotionml\" version=\"1.0\" xml:lang=\"en-US\"><voice name=\"zh-CN-YunyeNeural\"><prosody rate=\"0%\" pitch=\"0%\">" + self.text + "</prosody></voice></speak>\r\n")
+        self.mod_text = ''
+        mod = 0
+        last_index = 0
+        index = 0
+        voice_index = -1
+        self.text += '“'
+        for index in range(len(self.text)):
+            if self.text[index] == '“':
+                rt = self.text[last_index: index]
+                if mod == 0:
+                    if len(rt.strip()) > 0:
+                        self.mod_text = self.mod_text + \
+                            self.narrator.format(text=rt)
+                    last_index = index
+                elif mod == 1:
+                    if len(rt.strip()) > 0:
+                        voice_index = (voice_index + 1) % len(self.voices)
+                        self.mod_text = self.mod_text + \
+                            self.voices[voice_index].format(text=rt)
+                    last_index = index
+                mod = 1
+            elif self.text[index] == '”':
+                rt = self.text[last_index: index + 1]
+                if mod == 1:
+                    if len(rt.strip()) > 0:
+                        voice_index = (voice_index + 1) % len(self.voices)
+                        self.mod_text = self.mod_text + \
+                            self.voices[voice_index].format(text=rt)
+                    last_index = index + 1
+                elif mod == 0:
+                    pass
+                mod = 0
+        self.mod_text = "<speak xmlns=\"http://www.w3.org/2001/10/synthesis\" xmlns:mstts=\"http://www.w3.org/2001/mstts\" xmlns:emo=\"http://www.w3.org/2009/10/emotionml\" version=\"1.0\" xml:lang=\"en-US\"><voice name=\"zh-CN-YunyeNeural\">" + self.mod_text + "</voice></speak>"
+        print(self.mod_text)
+        self.send("X-RequestId:fe83fbefb15c7739fe674d9f3e81d38f\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n" + self.mod_text + "\r\n")
 
     def received_message(self, m):
         if b'turn.end' in m.data:
@@ -145,6 +183,7 @@ if __name__ == '__main__':
         print('参数有误！')
         exit(1)
     cpus = cpu_count()
+    cpus = 1
     print('CPU count is %d' % cpus)
     threads = []
     token = login_sf(sf_host_url=host_url,
