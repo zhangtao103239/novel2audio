@@ -18,8 +18,8 @@ class WSClient(WebSocketClient):
         self.text = text
         self.narrator = '<prosody rate="0%" pitch="0%">{text}</prosody>'
         self.voices = ['<prosody rate="0%" pitch="-7%">{text}</prosody>',
-                       '<prosody rate="0%" pitch="7%">{text}</prosody>',
-                       '<prosody rate="0%" pitch="14%">{text}</prosody>']
+                       '<prosody rate="0%" pitch="10%">{text}</prosody>',
+                       '<prosody rate="0%" pitch="20%">{text}</prosody>']
         super(WSClient, self).__init__(url)
 
     def opened(self):
@@ -58,7 +58,6 @@ class WSClient(WebSocketClient):
                     pass
                 mod = 0
         self.mod_text = "<speak xmlns=\"http://www.w3.org/2001/10/synthesis\" xmlns:mstts=\"http://www.w3.org/2001/mstts\" xmlns:emo=\"http://www.w3.org/2009/10/emotionml\" version=\"1.0\" xml:lang=\"en-US\"><voice name=\"zh-CN-YunyeNeural\">" + self.mod_text + "</voice></speak>"
-        print(self.mod_text)
         self.send("X-RequestId:fe83fbefb15c7739fe674d9f3e81d38f\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n" + self.mod_text + "\r\n")
 
     def received_message(self, m):
