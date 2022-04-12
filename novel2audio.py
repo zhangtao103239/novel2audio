@@ -1,6 +1,4 @@
 import getopt
-from importlib.metadata import files
-from lib2to3.pgen2.token import RBRACE
 import sys
 import requests
 from ws4py.client.threadedclient import WebSocketClient
@@ -81,6 +79,19 @@ def login_sf(sf_host_url, sf_username, sf_password):
         return response.json()['token']
 
 
+def is_uploaded_to_sf(token, host_url, repo_id, path, novel_name, filename):
+    headers = {
+        'Authorization': 'Token ' + token
+    }
+    url = host_url + '/api2/repos/' + repo_id + '/dir/'
+    r = requests.get(url, headers=headers, params={'p': path+'/' + novel_name})
+    if r.ok:
+        for file in r.json():
+            if file['name'] == filename and file['size'] > 0:
+                return True
+    return False
+
+
 def upload_to_sf(token, host_url, repo_id, path, novel_name, filename):
     headers = {
         'Authorization': 'Token ' + token
@@ -140,6 +151,9 @@ def spilt_chapter(novel_content):
 
 def transfrom2Audio(speech_url, chapter_name, chapter_content, index, sf_config):
     filename = index + "_" + chapter_name + '.mp3'
+    if is_uploaded_to_sf(sf_config['token'], sf_config['host_url'], sf_config['repo_id'],
+                 sf_config['path'], sf_config['novel_name'], filename):
+        return True
     ws = WSClient(speech_url, chapter_content, filename)
     ws.connect()
     ws.run_forever()
