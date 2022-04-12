@@ -152,10 +152,10 @@ if __name__ == '__main__':
     if token is None:
         print('登录SF失败！')
         exit(1)
+    index = 0
+    speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
     if txt_url.startswith('http'):
         txt_content = download_novel(txt_url, txt_name)
-        index = 0
-        speech_url = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=' + clientToken
         chapters = spilt_chapter(txt_content)
     else:
         book_url = search_book(txt_host_url, txt_name)
