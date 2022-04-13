@@ -1,4 +1,5 @@
 import getopt
+import os
 import sys
 import requests
 from ws4py.client.threadedclient import WebSocketClient
@@ -7,6 +8,7 @@ import threading
 from multiprocessing import cpu_count
 import json
 import re
+from xml.sax.saxutils import escape
 
 from search_book import get_chapters, search_book
 
@@ -15,11 +17,17 @@ class WSClient(WebSocketClient):
     def __init__(self, url, text, filename):
         self.fp = open(filename, 'wb')
         self.text = text
-        self.narrator = '<voice name="zh-CN-YunyeNeural">{text}</voice>'
+        # self.narrator = '<voice name="zh-CN-YunyeNeural">{text}</voice>'
+        # self.voices = [
+        #     '<voice name="zh-CN-XiaoxiaoNeural">{text}</voice>',
+        #     '<voice name="zh-CN-YunxiNeural">{text}</voice>',
+        #     '<voice name="zh-CN-YunyangNeural">{text}</voice>']
+        self.narrator = '<prosody rate="0%" pitch="0%">{text}</prosody>'
         self.voices = [
-            # '<voice name="zh-CN-XiaoxiaoNeural">{text}</voice>',
-                       '<voice name="zh-CN-YunxiNeural">{text}</voice>',
-                       '<voice name="zh-CN-YunyangNeural">{text}</voice>']
+            '<prosody rate="0%" pitch="-20%">{text}</prosody>', 
+            '<prosody rate="0%" pitch="20%">{text}</prosody>',
+             '<prosody rate="0%" pitch="40%">{text}</prosody>'
+        ]
         super(WSClient, self).__init__(url)
 
     def opened(self):
@@ -32,32 +40,35 @@ class WSClient(WebSocketClient):
         voice_index = -1
         for index in range(len(self.text)):
             if self.text[index] == '“':
-                rt = self.text[last_index: index]
+                rt = escape(self.text[last_index: index])
                 if len(rt.strip()) > 0 and mod == 0:
                     if index == 0 or self.text[index-1] in "，。： \n,.?!？！;； ":
-                        # rt = re.sub('\n+','<break strength="medium"/>', rt)
-                        self.mod_text = self.mod_text + self.narrator.format(text=rt)
+                        rt = re.sub('\n+','<break strength="medium"/>', rt)
+                        self.mod_text = self.mod_text + \
+                            self.narrator.format(text=rt)
                         last_index = index
                         mod = 1
             elif self.text[index] == '”':
-                rt = self.text[last_index: index + 1]
+                rt = escape(self.text[last_index: index + 1])
                 if len(rt.strip()) > 0 and mod == 1:
-                    # rt = re.sub('\n+','<break strength="medium"/>', rt)
+                    rt = re.sub('\n+','<break strength="medium"/>', rt)
                     voice_index = (voice_index + 1) % len(self.voices)
-                    self.mod_text = self.mod_text + self.voices[voice_index].format(text=rt)
+                    self.mod_text = self.mod_text + \
+                        self.voices[voice_index].format(text=rt)
                     last_index = index + 1
                     mod = 0
-        rt = self.text[last_index:]
+        rt = escape(self.text[last_index:])
         if len(rt.strip()) > 0:
-            # rt = re.sub('\n+','<break strength="medium"/>', rt)
+            rt = re.sub('\n+','<break strength="medium"/>', rt)
             if mod == 0:
                 self.mod_text = self.mod_text + self.narrator.format(text=rt)
             else:
                 voice_index = (voice_index + 1) % len(self.voices)
-                self.mod_text = self.mod_text + self.voices[voice_index].format(text=rt)
-        self.mod_text = "<speak xmlns=\"http://www.w3.org/2001/10/synthesis\" xmlns:mstts=\"http://www.w3.org/2001/mstts\" xmlns:emo=\"http://www.w3.org/2009/10/emotionml\" version=\"1.0\" xml:lang=\"en-US\">" + self.mod_text + "</speak>"
-        # print(self.mod_text)
-        self.send("X-RequestId:fe83fbefb15c7739fe674d9f3e81d38f\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n" + self.mod_text + "\r\n")
+                self.mod_text = self.mod_text + \
+                    self.voices[voice_index].format(text=rt)
+        self.mod_text = '<speak xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" version="1.0" xml:lang="cn"><voice name="zh-CN-YunyeNeural">' + self.mod_text + "</voice></speak>"
+        print(self.mod_text)
+        self.send("X-RequestId:fe83fbefb15c7739fe674d9f3e81d389\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n" + self.mod_text + "\r\n")
 
     def received_message(self, m):
         if b'turn.end' in m.data:
@@ -116,9 +127,10 @@ def upload_to_sf(token, host_url, repo_id, path, novel_name, filename):
 
 
 def download_novel(novel_url, novel_name):
-    response = requests.get(novel_url)
-    with open(novel_name + '.txt', 'wb') as f:
-        f.write(response.content)
+    if not os.path.exists(novel_name + '.txt'):
+        response = requests.get(novel_url)
+        with open(novel_name + '.txt', 'wb') as f:
+            f.write(response.content)
     print('下载文本成功')
     with open(novel_name + '.txt', 'r', encoding='utf-8') as f:
         return f.read()
@@ -153,7 +165,7 @@ def spilt_chapter(novel_content):
 def transfrom2Audio(speech_url, chapter_name, chapter_content, index, sf_config):
     filename = index + "_" + chapter_name + '.mp3'
     if is_uploaded_to_sf(sf_config['token'], sf_config['host_url'], sf_config['repo_id'],
-                 sf_config['path'], sf_config['novel_name'], filename):
+                         sf_config['path'], sf_config['novel_name'], filename):
         return True
     ws = WSClient(speech_url, chapter_content, filename)
     ws.connect()
@@ -197,7 +209,6 @@ if __name__ == '__main__':
         print('参数有误！')
         exit(1)
     cpus = cpu_count()
-    cpus = 1
     print('CPU count is %d' % cpus)
     threads = []
     token = login_sf(sf_host_url=host_url,
