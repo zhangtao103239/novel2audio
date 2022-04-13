@@ -24,9 +24,9 @@ class WSClient(WebSocketClient):
         #     '<voice name="zh-CN-YunyangNeural">{text}</voice>']
         self.narrator = '<prosody rate="0%" pitch="0%">{text}</prosody>'
         self.voices = [
-            '<prosody rate="0%" pitch="-20%">{text}</prosody>', 
-            '<prosody rate="0%" pitch="20%">{text}</prosody>',
-             '<prosody rate="0%" pitch="40%">{text}</prosody>'
+            '<prosody rate="0%" pitch="10%">{text}</prosody>',
+            '<prosody rate="0%" pitch="-10%">{text}</prosody>',
+            '<prosody rate="0%" pitch="20%">{text}</prosody>'
         ]
         super(WSClient, self).__init__(url)
 
@@ -40,18 +40,19 @@ class WSClient(WebSocketClient):
         voice_index = -1
         for index in range(len(self.text)):
             if self.text[index] == '“':
-                rt = escape(self.text[last_index: index])
+                rt = '<break strength="medium"/>' + escape(self.text[last_index: index])
                 if len(rt.strip()) > 0 and mod == 0:
                     if index == 0 or self.text[index-1] in "，。： \n,.?!？！;； ":
-                        rt = re.sub('\n+','<break strength="medium"/>', rt)
-                        self.mod_text = self.mod_text + \
+                        rt = re.sub(
+                            '\n+', '<break strength="medium"/>', rt)
+                        self.mod_text = self.mod_text + '<break strength="medium"/>' + \
                             self.narrator.format(text=rt)
                         last_index = index
                         mod = 1
             elif self.text[index] == '”':
                 rt = escape(self.text[last_index: index + 1])
                 if len(rt.strip()) > 0 and mod == 1:
-                    rt = re.sub('\n+','<break strength="medium"/>', rt)
+                    rt = re.sub('\n+', '<break strength="medium"/>', rt)
                     voice_index = (voice_index + 1) % len(self.voices)
                     self.mod_text = self.mod_text + \
                         self.voices[voice_index].format(text=rt)
@@ -59,15 +60,15 @@ class WSClient(WebSocketClient):
                     mod = 0
         rt = escape(self.text[last_index:])
         if len(rt.strip()) > 0:
-            rt = re.sub('\n+','<break strength="medium"/>', rt)
+            rt = re.sub('\n+', '<break strength="medium"/>', rt)
             if mod == 0:
                 self.mod_text = self.mod_text + self.narrator.format(text=rt)
             else:
                 voice_index = (voice_index + 1) % len(self.voices)
                 self.mod_text = self.mod_text + \
                     self.voices[voice_index].format(text=rt)
-        self.mod_text = '<speak xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" version="1.0" xml:lang="cn"><voice name="zh-CN-YunyeNeural">' + self.mod_text + "</voice></speak>"
-        print(self.mod_text)
+        self.mod_text = '<speak xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" version="1.0" xml:lang="cn"><voice name="zh-CN-YunyangNeural">' + self.mod_text + "</voice></speak>"
+        # print(self.mod_text)
         self.send("X-RequestId:fe83fbefb15c7739fe674d9f3e81d389\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n" + self.mod_text + "\r\n")
 
     def received_message(self, m):

@@ -13,3 +13,4 @@ buildNumber.properties
 *.mp3
 debug.log
 test.html
+*.txt
