@@ -15,7 +15,7 @@ class WSClient(WebSocketClient):
         self.fp = open(filename, 'wb')
         self.text = text
         self.narrator = '<prosody rate="0%" pitch="0%">{text}</prosody>'
-        self.voices = ['<prosody rate="0%" pitch="-7%">{text}</prosody>',
+        self.voices = ['<prosody rate="0%" pitch="-10%">{text}</prosody>',
                        '<prosody rate="0%" pitch="10%">{text}</prosody>',
                        '<prosody rate="0%" pitch="20%">{text}</prosody>']
         super(WSClient, self).__init__(url)
@@ -28,7 +28,6 @@ class WSClient(WebSocketClient):
         last_index = 0
         index = 0
         voice_index = -1
-        self.text += '“'
         for index in range(len(self.text)):
             if self.text[index] == '“':
                 rt = self.text[last_index: index]
@@ -38,11 +37,7 @@ class WSClient(WebSocketClient):
                             self.narrator.format(text=rt)
                     last_index = index
                 elif mod == 1:
-                    if len(rt.strip()) > 0:
-                        voice_index = (voice_index + 1) % len(self.voices)
-                        self.mod_text = self.mod_text + \
-                            self.voices[voice_index].format(text=rt)
-                    last_index = index
+                    pass
                 mod = 1
             elif self.text[index] == '”':
                 rt = self.text[last_index: index + 1]
@@ -55,6 +50,14 @@ class WSClient(WebSocketClient):
                 elif mod == 0:
                     pass
                 mod = 0
+        rt = self.text[last_index:]
+        if len(rt.strip()) > 0:
+            if mod == 0:
+                self.mod_text = self.mod_text + \
+                    self.narrator.format(text=rt)
+            else:
+                voice_index = (voice_index + 1) % len(self.voices)
+                self.mod_text = self.mod_text + self.voices[voice_index].format(text=rt)
         self.mod_text = "<speak xmlns=\"http://www.w3.org/2001/10/synthesis\" xmlns:mstts=\"http://www.w3.org/2001/mstts\" xmlns:emo=\"http://www.w3.org/2009/10/emotionml\" version=\"1.0\" xml:lang=\"en-US\"><voice name=\"zh-CN-YunyeNeural\">" + self.mod_text + "</voice></speak>"
         self.send("X-RequestId:fe83fbefb15c7739fe674d9f3e81d38f\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n" + self.mod_text + "\r\n")
 
